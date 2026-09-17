@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState, useRef } from 'react';
+import { logout } from '@/lib/auth';
 
 interface AppNavProps {
   activePage?: string;
@@ -10,10 +11,14 @@ interface AppNavProps {
 
 export default function AppNav({ activePage }: AppNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isDark, setIsDark] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [user, setUser] = useState<{ username?: string; role?: string; email?: string } | null>(null);
   const [messagesBadge, setMessagesBadge] = useState(0);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Load theme
@@ -26,11 +31,27 @@ export default function AppNav({ activePage }: AppNavProps) {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
-        const user = JSON.parse(userStr);
-        setUserRole(user.role);
+        const parsed = JSON.parse(userStr);
+        setUser(parsed);
       } catch {}
     }
   }, []);
+
+  // Dropdown click outside listener
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    }
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   const toggleTheme = () => {
     const newDark = !isDark;
@@ -39,118 +60,707 @@ export default function AppNav({ activePage }: AppNavProps) {
     localStorage.setItem('theme', newDark ? 'dark' : 'light');
   };
 
-  const handleProfileClick = () => {
-    if (userRole === 'agent') {
-      window.location.href = '/agent-profile';
-    } else if (userRole === 'admin') {
-      window.location.href = '/admin';
-    } else {
-      window.location.href = '/home';
-    }
-  };
-
   const isActive = (path: string) => pathname === path || activePage === path.replace('/', '');
-
-  const isAgent = userRole === 'agent';
+  const isAgent = user?.role === 'agent';
+  const isAdmin = user?.role === 'admin';
 
   return (
-    <header>
-      <div className="header-container">
-        <div className="flex items-center gap-6">
-          <Link href="/home" className="logo">PropertyHub</Link>
-          <nav>
-            <ul className="nav-menu desktop">
-              <li><Link href="/home" className={`nav-link${isActive('/home') ? ' active' : ''}`}>Home</Link></li>
-              <li><Link href="/properties" className={`nav-link${isActive('/properties') ? ' active' : ''}`}>Properties</Link></li>
-              <li><Link href="/favorites" className={`nav-link${isActive('/favorites') ? ' active' : ''}`}>Favorites</Link></li>
-              <li><Link href="/visits" className={`nav-link${isActive('/visits') ? ' active' : ''}`}>Visits</Link></li>
-              {isAgent && (
-                <>
-                  <li><Link href="/agent-dashboard" className={`nav-link${isActive('/agent-dashboard') ? ' active' : ''}`}>Dashboard</Link></li>
-                  <li><Link href="/new-property" className={`nav-link${isActive('/new-property') ? ' active' : ''}`}>+ List Property</Link></li>
-                  <li><Link href="/kyc-verification" className={`nav-link${isActive('/kyc-verification') ? ' active' : ''}`}>KYC Verification</Link></li>
-                </>
-              )}
-            </ul>
-          </nav>
-        </div>
-
-        <div className="header-actions">
-          {/* Theme Toggle */}
-          <button className="btn btn-icon btn-ghost" onClick={toggleTheme} aria-label="Toggle theme">
-            {isDark ? (
-              <svg className="icon moon-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            ) : (
-              <svg className="icon sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="5" />
-                <line x1="12" y1="1" x2="12" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="23" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                <line x1="1" y1="12" x2="3" y2="12" />
-                <line x1="21" y1="12" x2="23" y2="12" />
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-              </svg>
-            )}
-          </button>
-
-          {/* Messages */}
-          <Link href="/chat" className="btn btn-icon btn-ghost" title="Messages" style={{ position: 'relative' }}>
-            <svg className="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            {messagesBadge > 0 && (
-              <span className="notification-badge" style={{ position: 'absolute', top: '4px', right: '4px', background: '#ef4444', color: 'white', borderRadius: '10px', fontSize: '0.7rem', padding: '1px 5px' }}>
-                {messagesBadge}
-              </span>
-            )}
+    <header className="header" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100 }}>
+      <div className="header-line"></div>
+      <nav className="nav-container">
+        <div
+          className="nav-content"
+          style={{
+            maxWidth: '900px',
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          {/* Brand Logo */}
+          <Link href="/home" className="logo" style={{ textDecoration: 'none', flexShrink: 0 }}>
+            PropertyHub
           </Link>
 
-          {/* Profile */}
-          <button className="btn btn-icon btn-ghost" onClick={handleProfileClick} title="Profile">
-            <svg className="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </button>
-
-          {/* Mobile Menu Toggle */}
-          <button
-            className="btn btn-icon btn-ghost mobile-menu-btn"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle navigation menu"
-          >
-            <svg className="icon menu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="mobile-menu" style={{ display: 'block' }}>
-          <nav className="grid gap-2" style={{ display: 'grid', gap: '0.5rem', padding: '1rem' }}>
-            <Link href="/home" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
-            <Link href="/properties" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>Properties</Link>
-            <Link href="/favorites" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>Favorites</Link>
-            <Link href="/visits" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>Visits</Link>
-            <Link href="/chat" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>Messages</Link>
+          {/* Desktop Navigation Links */}
+          <ul className="nav-links desktop-only" style={{ margin: 0, padding: 0 }}>
+            <li>
+              <Link
+                href="/home"
+                style={isActive('/home') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
+              >
+                Home
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/properties"
+                style={isActive('/properties') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
+              >
+                Properties
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/favorites"
+                style={isActive('/favorites') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
+              >
+                Favorites
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/visits"
+                style={isActive('/visits') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
+              >
+                Visits
+              </Link>
+            </li>
             {isAgent && (
               <>
-                <Link href="/agent-dashboard" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link>
-                <Link href="/new-property" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>+ List Property</Link>
-                <Link href="/kyc-verification" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>KYC Verification</Link>
+                <li>
+                  <Link
+                    href="/agent-dashboard"
+                    style={isActive('/agent-dashboard') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
+                  >
+                    Dashboard
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/new-property"
+                    style={isActive('/new-property') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
+                  >
+                    + List
+                  </Link>
+                </li>
               </>
             )}
+            {isAdmin && (
+              <li>
+                <Link
+                  href="/admin"
+                  style={isActive('/admin') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
+                >
+                  Admin
+                </Link>
+              </li>
+            )}
+          </ul>
+
+          {/* Desktop Action Cluster (Theme, Messages, User Profile) */}
+          <div className="nav-cta desktop-only" style={{ alignItems: 'center', gap: '0.5rem' }}>
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'hsl(var(--muted-foreground))',
+                padding: '0.4rem',
+                borderRadius: '9999px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color 0.2s ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'hsl(var(--foreground))')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'hsl(var(--muted-foreground))')}
+            >
+              {isDark ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="5" />
+                  <line x1="12" y1="1" x2="12" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" />
+                  <line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+              )}
+            </button>
+
+            {/* Messages Icon */}
+            <Link
+              href="/chat"
+              title="Messages"
+              style={{
+                position: 'relative',
+                color: isActive('/chat') ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                padding: '0.4rem',
+                borderRadius: '9999px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textDecoration: 'none',
+                transition: 'color 0.2s ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'hsl(var(--foreground))')}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.color = isActive('/chat') ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))')
+              }
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              {messagesBadge > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '2px',
+                    right: '2px',
+                    background: '#ef4444',
+                    color: 'white',
+                    borderRadius: '10px',
+                    fontSize: '0.65rem',
+                    padding: '1px 4px',
+                    lineHeight: 1,
+                  }}
+                >
+                  {messagesBadge}
+                </span>
+              )}
+            </Link>
+
+            {/* Profile Dropdown */}
+            <div className={`dropdown ${profileDropdownOpen ? 'active' : ''}`} ref={dropdownRef}>
+              <button
+                className="btn-secondary dropdown-toggle"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setProfileDropdownOpen(!profileDropdownOpen);
+                }}
+                style={{
+                  padding: '0.4rem 0.85rem',
+                  fontSize: '0.8125rem',
+                  borderRadius: '9999px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                <div
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: 'hsl(var(--primary))',
+                    color: 'hsl(var(--primary-foreground))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {user?.username ? user.username.charAt(0) : 'U'}
+                </div>
+                <span>{user?.username || 'Account'}</span>
+                <svg className="dropdown-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
+                  <path
+                    d="M3 4.5L6 7.5L9 4.5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+
+              <div className="dropdown-menu" style={{ right: 0, minWidth: '240px' }}>
+                <div
+                  className="dropdown-section"
+                  style={{ borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem', marginBottom: '0.25rem' }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'hsl(var(--foreground))' }}>
+                    {user?.username || 'User'}
+                  </div>
+                  {user?.email && (
+                    <div style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
+                      {user.email}
+                    </div>
+                  )}
+                  {user?.role && (
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        marginTop: '0.35rem',
+                        fontSize: '0.6875rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '9999px',
+                        background: 'hsl(var(--muted))',
+                        color: 'hsl(var(--foreground))',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {user.role}
+                    </span>
+                  )}
+                </div>
+
+                <div className="dropdown-section">
+                  {isAgent && (
+                    <>
+                      <Link href="/agent-dashboard" className="dropdown-item" onClick={() => setProfileDropdownOpen(false)}>
+                        <div className="dropdown-item-title">Agent Dashboard</div>
+                      </Link>
+                      <Link href="/agent-profile" className="dropdown-item" onClick={() => setProfileDropdownOpen(false)}>
+                        <div className="dropdown-item-title">Agent Profile</div>
+                      </Link>
+                      <Link href="/new-property" className="dropdown-item" onClick={() => setProfileDropdownOpen(false)}>
+                        <div className="dropdown-item-title">List New Property</div>
+                      </Link>
+                      <Link href="/kyc-verification" className="dropdown-item" onClick={() => setProfileDropdownOpen(false)}>
+                        <div className="dropdown-item-title">KYC Verification</div>
+                      </Link>
+                    </>
+                  )}
+                  {isAdmin && (
+                    <Link href="/admin" className="dropdown-item" onClick={() => setProfileDropdownOpen(false)}>
+                      <div className="dropdown-item-title">Admin Console</div>
+                    </Link>
+                  )}
+                  <Link href="/favorites" className="dropdown-item" onClick={() => setProfileDropdownOpen(false)}>
+                    <div className="dropdown-item-title">Saved Favorites</div>
+                  </Link>
+                  <Link href="/visits" className="dropdown-item" onClick={() => setProfileDropdownOpen(false)}>
+                    <div className="dropdown-item-title">Scheduled Visits</div>
+                  </Link>
+                </div>
+
+                <div className="dropdown-divider"></div>
+
+                <div className="dropdown-section">
+                  <button
+                    onClick={async () => {
+                      setProfileDropdownOpen(false);
+                      await logout();
+                    }}
+                    className="dropdown-item"
+                    style={{
+                      width: '100%',
+                      background: 'none',
+                      border: 'none',
+                      textAlign: 'left',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div className="dropdown-item-title" style={{ color: '#ef4444' }}>
+                      Sign Out
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Hamburger Toggle (Visible ONLY on Mobile) */}
+          <button
+            className="mobile-menu-toggle mobile-only-button"
+            aria-label="Toggle menu"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'hsl(var(--foreground))',
+              cursor: 'pointer',
+              padding: '0.35rem',
+              display: 'none', // Managed by responsive CSS below
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {isMobileMenuOpen ? (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            ) : (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            )}
+          </button>
+        </div>
+      </nav>
+
+      {/* Full Collapsible Mobile Menu Drawer */}
+      {isMobileMenuOpen && (
+        <div
+          ref={mobileMenuRef}
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 0.5rem)',
+            left: '1rem',
+            right: '1rem',
+            background: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: '20px',
+            boxShadow: '0 16px 36px rgba(0, 0, 0, 0.15)',
+            padding: '1.25rem',
+            zIndex: 1000,
+            animation: 'slideInDown 0.25s ease',
+          }}
+        >
+          {/* User Header Profile */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              paddingBottom: '1rem',
+              marginBottom: '1rem',
+              borderBottom: '1px solid hsl(var(--border))',
+            }}
+          >
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                background: 'hsl(var(--primary))',
+                color: 'hsl(var(--primary-foreground))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 600,
+                fontSize: '1rem',
+                textTransform: 'uppercase',
+              }}
+            >
+              {user?.username ? user.username.charAt(0) : 'U'}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'hsl(var(--foreground))' }}>
+                {user?.username || 'User'}
+              </div>
+              {user?.email && (
+                <div style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {user.email}
+                </div>
+              )}
+            </div>
+            {user?.role && (
+              <span
+                style={{
+                  fontSize: '0.6875rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '9999px',
+                  background: 'hsl(var(--muted))',
+                  color: 'hsl(var(--foreground))',
+                  fontWeight: 600,
+                }}
+              >
+                {user.role}
+              </span>
+            )}
+          </div>
+
+          {/* Quick Actions Row: Theme Toggle & Messages */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '0.75rem',
+              marginBottom: '1.25rem',
+            }}
+          >
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                padding: '0.65rem 0.75rem',
+                borderRadius: '12px',
+                background: 'hsl(var(--muted))',
+                border: '1px solid hsl(var(--border))',
+                color: 'hsl(var(--foreground))',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              {isDark ? (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                  <span>Dark Mode</span>
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="5" />
+                    <line x1="12" y1="1" x2="12" y2="3" />
+                    <line x1="12" y1="21" x2="12" y2="23" />
+                  </svg>
+                  <span>Light Mode</span>
+                </>
+              )}
+            </button>
+
+            {/* Messages Button */}
+            <Link
+              href="/chat"
+              onClick={() => setIsMobileMenuOpen(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                padding: '0.65rem 0.75rem',
+                borderRadius: '12px',
+                background: 'hsl(var(--muted))',
+                border: '1px solid hsl(var(--border))',
+                color: 'hsl(var(--foreground))',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                textDecoration: 'none',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              <span>Messages</span>
+              {messagesBadge > 0 && (
+                <span
+                  style={{
+                    background: '#ef4444',
+                    color: 'white',
+                    borderRadius: '10px',
+                    fontSize: '0.65rem',
+                    padding: '1px 5px',
+                  }}
+                >
+                  {messagesBadge}
+                </span>
+              )}
+            </Link>
+          </div>
+
+          {/* Navigation Links */}
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1rem' }}>
+            <Link
+              href="/home"
+              onClick={() => setIsMobileMenuOpen(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.65rem 0.85rem',
+                borderRadius: '10px',
+                fontSize: '0.9375rem',
+                fontWeight: isActive('/home') ? 600 : 500,
+                background: isActive('/home') ? 'hsl(var(--muted))' : 'transparent',
+                color: 'hsl(var(--foreground))',
+                textDecoration: 'none',
+              }}
+            >
+              Home
+            </Link>
+            <Link
+              href="/properties"
+              onClick={() => setIsMobileMenuOpen(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.65rem 0.85rem',
+                borderRadius: '10px',
+                fontSize: '0.9375rem',
+                fontWeight: isActive('/properties') ? 600 : 500,
+                background: isActive('/properties') ? 'hsl(var(--muted))' : 'transparent',
+                color: 'hsl(var(--foreground))',
+                textDecoration: 'none',
+              }}
+            >
+              Browse Properties
+            </Link>
+            <Link
+              href="/favorites"
+              onClick={() => setIsMobileMenuOpen(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.65rem 0.85rem',
+                borderRadius: '10px',
+                fontSize: '0.9375rem',
+                fontWeight: isActive('/favorites') ? 600 : 500,
+                background: isActive('/favorites') ? 'hsl(var(--muted))' : 'transparent',
+                color: 'hsl(var(--foreground))',
+                textDecoration: 'none',
+              }}
+            >
+              Saved Favorites
+            </Link>
+            <Link
+              href="/visits"
+              onClick={() => setIsMobileMenuOpen(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.65rem 0.85rem',
+                borderRadius: '10px',
+                fontSize: '0.9375rem',
+                fontWeight: isActive('/visits') ? 600 : 500,
+                background: isActive('/visits') ? 'hsl(var(--muted))' : 'transparent',
+                color: 'hsl(var(--foreground))',
+                textDecoration: 'none',
+              }}
+            >
+              Scheduled Visits
+            </Link>
+
+            {isAgent && (
+              <>
+                <Link
+                  href="/agent-dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '10px',
+                    fontSize: '0.9375rem',
+                    fontWeight: isActive('/agent-dashboard') ? 600 : 500,
+                    background: isActive('/agent-dashboard') ? 'hsl(var(--muted))' : 'transparent',
+                    color: 'hsl(var(--foreground))',
+                    textDecoration: 'none',
+                  }}
+                >
+                  📊 Agent Dashboard
+                </Link>
+                <Link
+                  href="/new-property"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '10px',
+                    fontSize: '0.9375rem',
+                    fontWeight: isActive('/new-property') ? 600 : 500,
+                    background: isActive('/new-property') ? 'hsl(var(--muted))' : 'transparent',
+                    color: 'hsl(var(--foreground))',
+                    textDecoration: 'none',
+                  }}
+                >
+                  ➕ List New Property
+                </Link>
+                <Link
+                  href="/kyc-verification"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '10px',
+                    fontSize: '0.9375rem',
+                    fontWeight: isActive('/kyc-verification') ? 600 : 500,
+                    background: isActive('/kyc-verification') ? 'hsl(var(--muted))' : 'transparent',
+                    color: 'hsl(var(--foreground))',
+                    textDecoration: 'none',
+                  }}
+                >
+                  🛡️ KYC Verification
+                </Link>
+              </>
+            )}
+
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setIsMobileMenuOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: '10px',
+                  fontSize: '0.9375rem',
+                  fontWeight: isActive('/admin') ? 600 : 500,
+                  background: isActive('/admin') ? 'hsl(var(--muted))' : 'transparent',
+                  color: 'hsl(var(--foreground))',
+                  textDecoration: 'none',
+                }}
+              >
+                ⚙️ Admin Console
+              </Link>
+            )}
           </nav>
+
+          {/* Sign Out Button */}
+          <div style={{ paddingTop: '0.75rem', borderTop: '1px solid hsl(var(--border))' }}>
+            <button
+              onClick={async () => {
+                setIsMobileMenuOpen(false);
+                await logout();
+              }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem',
+                borderRadius: '10px',
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                color: '#ef4444',
+                fontSize: '0.9375rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Sign Out
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Inline styles for responsive behavior */}
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .desktop-only {
+            display: none !important;
+          }
+          .mobile-only-button {
+            display: flex !important;
+          }
+        }
+        @media (min-width: 769px) {
+          .desktop-only {
+            display: flex !important;
+          }
+          .mobile-only-button {
+            display: none !important;
+          }
+        }
+      `}</style>
     </header>
   );
 }

@@ -169,26 +169,13 @@ export default function LandingPage() {
             </ul>
             <div className={`nav-cta ${mobileMenuOpen ? 'active' : ''}`} ref={dropdownRef}>
               {user ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <Link
-                    href={user.role === 'agent' ? '/agent-dashboard' : user.role === 'admin' ? '/admin' : '/home'}
-                    className="btn-primary"
-                    style={{ fontSize: '0.875rem', padding: '0.5rem 1.25rem' }}
-                  >
-                    Dashboard
-                  </Link>
-                  <button
-                    onClick={() => {
-                      clearAuth();
-                      setUser(null);
-                      router.push('/login');
-                    }}
-                    className="btn-secondary"
-                    style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
-                  >
-                    Sign Out
-                  </button>
-                </div>
+                <Link
+                  href={user.role === 'agent' ? '/agent-dashboard' : user.role === 'admin' ? '/admin' : '/home'}
+                  className="btn-primary"
+                  style={{ fontSize: '0.875rem', padding: '0.5rem 1.25rem', borderRadius: '9999px', textDecoration: 'none' }}
+                >
+                  Dashboard
+                </Link>
               ) : (
                 <div className={`dropdown ${dropdownOpen ? 'active' : ''}`}>
                   <button

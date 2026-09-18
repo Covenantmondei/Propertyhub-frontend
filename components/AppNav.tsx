@@ -67,28 +67,60 @@ export default function AppNav({ activePage }: AppNavProps) {
   return (
     <header className="header" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100 }}>
       <div className="header-line"></div>
-      <nav className="nav-container">
+      <nav className="nav-container" style={{ padding: '0.5rem 1rem' }}>
         <div
           className="nav-content"
           style={{
-            maxWidth: '900px',
+            maxWidth: '880px',
+            width: '100%',
             position: 'relative',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            flexWrap: 'nowrap',
+            padding: '0.4rem 0.85rem 0.4rem 1.25rem',
+            gap: '0.75rem',
           }}
         >
           {/* Brand Logo */}
-          <Link href="/home" className="logo" style={{ textDecoration: 'none', flexShrink: 0 }}>
+          <Link
+            href="/home"
+            className="logo"
+            style={{
+              textDecoration: 'none',
+              flexShrink: 0,
+              fontSize: '1.2rem',
+              fontWeight: 700,
+              color: 'hsl(var(--foreground))',
+              whiteSpace: 'nowrap',
+            }}
+          >
             PropertyHub
           </Link>
 
           {/* Desktop Navigation Links */}
-          <ul className="nav-links desktop-only" style={{ margin: 0, padding: 0 }}>
+          <ul
+            className="nav-links desktop-nav"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              listStyle: 'none',
+              gap: '1.25rem',
+              margin: 0,
+              padding: 0,
+              whiteSpace: 'nowrap',
+            }}
+          >
             <li>
               <Link
                 href="/home"
-                style={isActive('/home') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
+                style={{
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: isActive('/home') ? 600 : 500,
+                  color: isActive('/home') ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                  transition: 'color 0.15s ease',
+                }}
               >
                 Home
               </Link>
@@ -96,7 +128,13 @@ export default function AppNav({ activePage }: AppNavProps) {
             <li>
               <Link
                 href="/properties"
-                style={isActive('/properties') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
+                style={{
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: isActive('/properties') ? 600 : 500,
+                  color: isActive('/properties') ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                  transition: 'color 0.15s ease',
+                }}
               >
                 Properties
               </Link>
@@ -104,7 +142,13 @@ export default function AppNav({ activePage }: AppNavProps) {
             <li>
               <Link
                 href="/favorites"
-                style={isActive('/favorites') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
+                style={{
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: isActive('/favorites') ? 600 : 500,
+                  color: isActive('/favorites') ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                  transition: 'color 0.15s ease',
+                }}
               >
                 Favorites
               </Link>
@@ -112,36 +156,44 @@ export default function AppNav({ activePage }: AppNavProps) {
             <li>
               <Link
                 href="/visits"
-                style={isActive('/visits') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
+                style={{
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: isActive('/visits') ? 600 : 500,
+                  color: isActive('/visits') ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                  transition: 'color 0.15s ease',
+                }}
               >
                 Visits
               </Link>
             </li>
             {isAgent && (
-              <>
-                <li>
-                  <Link
-                    href="/agent-dashboard"
-                    style={isActive('/agent-dashboard') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
-                  >
-                    Dashboard
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/new-property"
-                    style={isActive('/new-property') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
-                  >
-                    + List
-                  </Link>
-                </li>
-              </>
+              <li>
+                <Link
+                  href="/agent-dashboard"
+                  style={{
+                    textDecoration: 'none',
+                    fontSize: '0.875rem',
+                    fontWeight: isActive('/agent-dashboard') ? 600 : 500,
+                    color: isActive('/agent-dashboard') ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                    transition: 'color 0.15s ease',
+                  }}
+                >
+                  Dashboard
+                </Link>
+              </li>
             )}
             {isAdmin && (
               <li>
                 <Link
                   href="/admin"
-                  style={isActive('/admin') ? { color: 'hsl(var(--foreground))', fontWeight: 600 } : {}}
+                  style={{
+                    textDecoration: 'none',
+                    fontSize: '0.875rem',
+                    fontWeight: isActive('/admin') ? 600 : 500,
+                    color: isActive('/admin') ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                    transition: 'color 0.15s ease',
+                  }}
                 >
                   Admin
                 </Link>
@@ -150,7 +202,16 @@ export default function AppNav({ activePage }: AppNavProps) {
           </ul>
 
           {/* Desktop Action Cluster (Theme, Messages, User Profile) */}
-          <div className="nav-cta desktop-only" style={{ alignItems: 'center', gap: '0.5rem' }}>
+          <div
+            className="desktop-actions"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
+            }}
+          >
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
@@ -160,7 +221,7 @@ export default function AppNav({ activePage }: AppNavProps) {
                 border: 'none',
                 cursor: 'pointer',
                 color: 'hsl(var(--muted-foreground))',
-                padding: '0.4rem',
+                padding: '0.35rem',
                 borderRadius: '9999px',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -196,7 +257,7 @@ export default function AppNav({ activePage }: AppNavProps) {
               style={{
                 position: 'relative',
                 color: isActive('/chat') ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                padding: '0.4rem',
+                padding: '0.35rem',
                 borderRadius: '9999px',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -232,7 +293,7 @@ export default function AppNav({ activePage }: AppNavProps) {
             </Link>
 
             {/* Profile Dropdown */}
-            <div className={`dropdown ${profileDropdownOpen ? 'active' : ''}`} ref={dropdownRef}>
+            <div className={`dropdown ${profileDropdownOpen ? 'active' : ''}`} ref={dropdownRef} style={{ position: 'relative' }}>
               <button
                 className="btn-secondary dropdown-toggle"
                 onClick={(e) => {
@@ -240,7 +301,7 @@ export default function AppNav({ activePage }: AppNavProps) {
                   setProfileDropdownOpen(!profileDropdownOpen);
                 }}
                 style={{
-                  padding: '0.4rem 0.85rem',
+                  padding: '0.35rem 0.75rem',
                   fontSize: '0.8125rem',
                   borderRadius: '9999px',
                   display: 'flex',
@@ -248,6 +309,7 @@ export default function AppNav({ activePage }: AppNavProps) {
                   gap: '0.4rem',
                   fontWeight: 500,
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 <div
@@ -263,11 +325,14 @@ export default function AppNav({ activePage }: AppNavProps) {
                     fontSize: '0.7rem',
                     fontWeight: 600,
                     textTransform: 'uppercase',
+                    flexShrink: 0,
                   }}
                 >
                   {user?.username ? user.username.charAt(0) : 'U'}
                 </div>
-                <span>{user?.username || 'Account'}</span>
+                <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user?.username || 'Account'}
+                </span>
                 <svg className="dropdown-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
                   <path
                     d="M3 4.5L6 7.5L9 4.5"
@@ -369,9 +434,9 @@ export default function AppNav({ activePage }: AppNavProps) {
             </div>
           </div>
 
-          {/* Mobile Hamburger Toggle (Visible ONLY on Mobile) */}
+          {/* Mobile Hamburger Toggle (Visible ONLY when screen <= 900px) */}
           <button
-            className="mobile-menu-toggle mobile-only-button"
+            className="mobile-hamburger-btn"
             aria-label="Toggle menu"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             style={{
@@ -380,9 +445,9 @@ export default function AppNav({ activePage }: AppNavProps) {
               color: 'hsl(var(--foreground))',
               cursor: 'pointer',
               padding: '0.35rem',
-              display: 'none', // Managed by responsive CSS below
               alignItems: 'center',
               justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
             {isMobileMenuOpen ? (
@@ -410,6 +475,8 @@ export default function AppNav({ activePage }: AppNavProps) {
             top: 'calc(100% + 0.5rem)',
             left: '1rem',
             right: '1rem',
+            maxWidth: '540px',
+            margin: '0 auto',
             background: 'hsl(var(--card))',
             border: '1px solid hsl(var(--border))',
             borderRadius: '20px',
@@ -443,6 +510,7 @@ export default function AppNav({ activePage }: AppNavProps) {
                 fontWeight: 600,
                 fontSize: '1rem',
                 textTransform: 'uppercase',
+                flexShrink: 0,
               }}
             >
               {user?.username ? user.username.charAt(0) : 'U'}
@@ -468,6 +536,7 @@ export default function AppNav({ activePage }: AppNavProps) {
                   background: 'hsl(var(--muted))',
                   color: 'hsl(var(--foreground))',
                   fontWeight: 600,
+                  flexShrink: 0,
                 }}
               >
                 {user.role}
@@ -577,7 +646,7 @@ export default function AppNav({ activePage }: AppNavProps) {
                 textDecoration: 'none',
               }}
             >
-              Home
+              🏠 Home
             </Link>
             <Link
               href="/properties"
@@ -594,7 +663,7 @@ export default function AppNav({ activePage }: AppNavProps) {
                 textDecoration: 'none',
               }}
             >
-              Browse Properties
+              🔍 Browse Properties
             </Link>
             <Link
               href="/favorites"
@@ -611,7 +680,7 @@ export default function AppNav({ activePage }: AppNavProps) {
                 textDecoration: 'none',
               }}
             >
-              Saved Favorites
+              ❤️ Saved Favorites
             </Link>
             <Link
               href="/visits"
@@ -628,7 +697,7 @@ export default function AppNav({ activePage }: AppNavProps) {
                 textDecoration: 'none',
               }}
             >
-              Scheduled Visits
+              📅 Scheduled Visits
             </Link>
 
             {isAgent && (
@@ -742,21 +811,23 @@ export default function AppNav({ activePage }: AppNavProps) {
         </div>
       )}
 
-      {/* Inline styles for responsive behavior */}
+      {/* Responsive Breakpoint Styles */}
       <style jsx>{`
-        @media (max-width: 768px) {
-          .desktop-only {
+        @media (max-width: 900px) {
+          .desktop-nav,
+          .desktop-actions {
             display: none !important;
           }
-          .mobile-only-button {
+          .mobile-hamburger-btn {
             display: flex !important;
           }
         }
-        @media (min-width: 769px) {
-          .desktop-only {
+        @media (min-width: 901px) {
+          .desktop-nav,
+          .desktop-actions {
             display: flex !important;
           }
-          .mobile-only-button {
+          .mobile-hamburger-btn {
             display: none !important;
           }
         }

@@ -47,7 +47,7 @@ function ChatContent() {
       try {
         const u = JSON.parse(userStr);
         setCurrentUserId(u.user_id || u.id);
-      } catch {}
+      } catch { }
     }
     loadConversations();
     return () => {
@@ -84,7 +84,7 @@ function ChatContent() {
     setActiveConv(conv);
     setLoadingMsgs(true);
     try {
-      const data = await apiCall(`/messages/conversations/${conv.id}/messages`);
+      const data = await apiCall(`/chat/conversations/${conv.id}/messages`);
       let list: Message[] = [];
       if (Array.isArray(data)) {
         list = data;
@@ -104,7 +104,7 @@ function ChatContent() {
     if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = setInterval(async () => {
       try {
-        const data = await apiCall(`/messages/conversations/${conv.id}/messages`);
+        const data = await apiCall(`/chat/conversations/${conv.id}/messages`);
         let list: Message[] = [];
         if (Array.isArray(data)) {
           list = data;
@@ -114,7 +114,7 @@ function ChatContent() {
           list = data.messages;
         }
         setMessages(list);
-      } catch {}
+      } catch { }
     }, 5000);
   }
 
@@ -123,11 +123,11 @@ function ChatContent() {
     const content = newMessage;
     setNewMessage('');
     try {
-      await apiCall(`/messages/conversations/${activeConv.id}/messages`, {
+      await apiCall(`/chat/conversations/${activeConv.id}/messages`, {
         method: 'POST',
         body: JSON.stringify({ content }),
       });
-      const data = await apiCall(`/messages/conversations/${activeConv.id}/messages`);
+      const data = await apiCall(`/chat/conversations/${activeConv.id}/messages`);
       let list: Message[] = [];
       if (Array.isArray(data)) {
         list = data;

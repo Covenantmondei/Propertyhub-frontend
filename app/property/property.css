@@ -7,6 +7,11 @@
   background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
   position: relative;
   z-index: 2;
+  transition: background 0.3s ease;
+}
+
+.dark .property-main {
+  background: linear-gradient(180deg, #030712 0%, #0b0f19 100%);
 }
 
 .property-page-layout {

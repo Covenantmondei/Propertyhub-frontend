@@ -749,8 +749,7 @@ main {
 /* ================================================
    SECTION 3: LANDING PAGE STYLES (landing.css)
    ================================================ */
-/* Section 3 tokens mapped to design system */
-    
+:root {
     /* Spacing */
     --spacing-xs: 0.5rem;
     --spacing-sm: 1rem;

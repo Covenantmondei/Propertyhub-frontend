@@ -661,6 +661,7 @@ export default function AppNav({ activePage }: AppNavProps) {
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                gap: '0.75rem',
                 padding: '0.65rem 0.85rem',
                 borderRadius: '10px',
                 fontSize: '0.9375rem',
@@ -670,7 +671,11 @@ export default function AppNav({ activePage }: AppNavProps) {
                 textDecoration: 'none',
               }}
             >
-              🏠 Home
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              <span>Home</span>
             </Link>
             <Link
               href="/properties"
@@ -678,6 +683,7 @@ export default function AppNav({ activePage }: AppNavProps) {
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                gap: '0.75rem',
                 padding: '0.65rem 0.85rem',
                 borderRadius: '10px',
                 fontSize: '0.9375rem',
@@ -687,7 +693,11 @@ export default function AppNav({ activePage }: AppNavProps) {
                 textDecoration: 'none',
               }}
             >
-              🔍 Browse Properties
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <span>Browse Properties</span>
             </Link>
             <Link
               href="/favorites"
@@ -695,6 +705,7 @@ export default function AppNav({ activePage }: AppNavProps) {
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                gap: '0.75rem',
                 padding: '0.65rem 0.85rem',
                 borderRadius: '10px',
                 fontSize: '0.9375rem',
@@ -704,7 +715,10 @@ export default function AppNav({ activePage }: AppNavProps) {
                 textDecoration: 'none',
               }}
             >
-              ❤️ Saved Favorites
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+              </svg>
+              <span>Saved Favorites</span>
             </Link>
             <Link
               href="/visits"
@@ -712,6 +726,7 @@ export default function AppNav({ activePage }: AppNavProps) {
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                gap: '0.75rem',
                 padding: '0.65rem 0.85rem',
                 borderRadius: '10px',
                 fontSize: '0.9375rem',
@@ -721,7 +736,13 @@ export default function AppNav({ activePage }: AppNavProps) {
                 textDecoration: 'none',
               }}
             >
-              📅 Scheduled Visits
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                <line x1="16" x2="16" y1="2" y2="6" />
+                <line x1="8" x2="8" y1="2" y2="6" />
+                <line x1="3" x2="21" y1="10" y2="10" />
+              </svg>
+              <span>Scheduled Visits</span>
             </Link>
 
             {isAgent && (
@@ -732,6 +753,7 @@ export default function AppNav({ activePage }: AppNavProps) {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
+                    gap: '0.75rem',
                     padding: '0.65rem 0.85rem',
                     borderRadius: '10px',
                     fontSize: '0.9375rem',
@@ -741,7 +763,13 @@ export default function AppNav({ activePage }: AppNavProps) {
                     textDecoration: 'none',
                   }}
                 >
-                  📊 Agent Dashboard
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect width="7" height="9" x="3" y="3" rx="1" />
+                    <rect width="7" height="5" x="14" y="3" rx="1" />
+                    <rect width="7" height="9" x="14" y="12" rx="1" />
+                    <rect width="7" height="5" x="3" y="16" rx="1" />
+                  </svg>
+                  <span>Agent Dashboard</span>
                 </Link>
                 <Link
                   href="/new-property"
@@ -749,6 +777,7 @@ export default function AppNav({ activePage }: AppNavProps) {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
+                    gap: '0.75rem',
                     padding: '0.65rem 0.85rem',
                     borderRadius: '10px',
                     fontSize: '0.9375rem',
@@ -758,7 +787,12 @@ export default function AppNav({ activePage }: AppNavProps) {
                     textDecoration: 'none',
                   }}
                 >
-                  ➕ List New Property
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                  </svg>
+                  <span>List New Property</span>
                 </Link>
                 <Link
                   href="/kyc-verification"
@@ -766,6 +800,7 @@ export default function AppNav({ activePage }: AppNavProps) {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
+                    gap: '0.75rem',
                     padding: '0.65rem 0.85rem',
                     borderRadius: '10px',
                     fontSize: '0.9375rem',
@@ -775,7 +810,10 @@ export default function AppNav({ activePage }: AppNavProps) {
                     textDecoration: 'none',
                   }}
                 >
-                  🛡️ KYC Verification
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                  <span>KYC Verification</span>
                 </Link>
               </>
             )}
@@ -787,6 +825,7 @@ export default function AppNav({ activePage }: AppNavProps) {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  gap: '0.75rem',
                   padding: '0.65rem 0.85rem',
                   borderRadius: '10px',
                   fontSize: '0.9375rem',
@@ -796,7 +835,11 @@ export default function AppNav({ activePage }: AppNavProps) {
                   textDecoration: 'none',
                 }}
               >
-                ⚙️ Admin Console
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                <span>Admin Console</span>
               </Link>
             )}
           </nav>

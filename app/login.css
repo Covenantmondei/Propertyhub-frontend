@@ -230,6 +230,7 @@ input.glass-input:-webkit-autofill:active {
     align-items: center;
 }
 
+.input-with-icon .input-icon,
 .input-icon {
     position: absolute;
     left: 0.875rem;
@@ -247,9 +248,14 @@ input.glass-input:-webkit-autofill:active {
     z-index: 2;
 }
 
-.input-with-icon .glass-input {
-    padding-left: 2.75rem;
-    padding-right: 2.75rem;
+.input-with-icon .glass-input,
+.input-with-icon input.glass-input,
+.input-with-icon input.form-input,
+.input-with-icon input,
+.auth-form .input-with-icon input.form-input.glass-input,
+.auth-form .input-with-icon input {
+    padding-left: 2.75rem !important;
+    padding-right: 2.75rem !important;
 }
 
 .toggle-password {

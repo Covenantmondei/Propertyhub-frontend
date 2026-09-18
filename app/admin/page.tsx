@@ -67,25 +67,44 @@ export default function AdminDashboardPage() {
     loadRecentActivity();
   }, []);
 
+  function extractArray(res: any): any[] {
+    if (!res) return [];
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res.data)) return res.data;
+    if (Array.isArray(res.items)) return res.items;
+    if (Array.isArray(res.properties)) return res.properties;
+    if (Array.isArray(res.users)) return res.users;
+    if (Array.isArray(res.agents)) return res.agents;
+    if (Array.isArray(res.kyc)) return res.kyc;
+    if (Array.isArray(res.logs)) return res.logs;
+    if (Array.isArray(res.activity_logs)) return res.activity_logs;
+    return [];
+  }
+
   const loadStats = async () => {
     try {
       const res = await apiCall<any>('/admin/dashboard', 'GET');
-      if (res.success && res.data) {
+      if (res && res.success && res.data) {
         setStats(res.data);
+      } else if (res && typeof res === 'object') {
+        setStats((prev: any) => ({ ...prev, ...res }));
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load admin stats:', err);
     }
   };
 
   const loadRecentActivity = async () => {
     try {
-      const res = await apiCall<any[]>('/admin/activity-logs?days=1', 'GET');
-      if (res.success && Array.isArray(res.data)) {
-        setRecentActivity(res.data.slice(0, 5));
+      const res = await apiCall<any>('/admin/activity-logs?days=1', 'GET');
+      let list = extractArray(res);
+      if (list.length === 0) {
+        const fallbackRes = await apiCall<any>('/admin/activity-logs?days=7', 'GET');
+        list = extractArray(fallbackRes);
       }
+      setRecentActivity(list.slice(0, 5));
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load recent activity:', err);
     } finally {
       setLoading(false);
     }
@@ -94,12 +113,18 @@ export default function AdminDashboardPage() {
   const loadPendingProperties = async () => {
     try {
       setLoading(true);
-      const res = await apiCall<any[]>('/admin/properties/pending', 'GET');
-      if (res.success && Array.isArray(res.data)) {
-        setPendingProperties(res.data);
+      const res = await apiCall<any>('/admin/properties/pending', 'GET');
+      let list = extractArray(res);
+      if (list.length === 0) {
+        const allRes = await apiCall<any>('/admin/properties', 'GET');
+        const allList = extractArray(allRes);
+        const filtered = allList.filter((p: any) => p.status === 'pending');
+        if (filtered.length > 0) list = filtered;
       }
+      setPendingProperties(list);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load pending properties:', err);
+      setPendingProperties([]);
     } finally {
       setLoading(false);
     }
@@ -108,12 +133,18 @@ export default function AdminDashboardPage() {
   const loadPendingAgents = async () => {
     try {
       setLoading(true);
-      const res = await apiCall<any[]>('/admin/agents/pending', 'GET');
-      if (res.success && Array.isArray(res.data)) {
-        setPendingAgents(res.data);
+      const res = await apiCall<any>('/admin/agents/pending', 'GET');
+      let list = extractArray(res);
+      if (list.length === 0) {
+        const usersRes = await apiCall<any>('/admin/users?role=agent', 'GET');
+        const userList = extractArray(usersRes);
+        const pending = userList.filter((u: any) => !u.is_verified || u.status === 'pending');
+        if (pending.length > 0) list = pending;
       }
+      setPendingAgents(list);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load pending agents:', err);
+      setPendingAgents([]);
     } finally {
       setLoading(false);
     }
@@ -122,12 +153,18 @@ export default function AdminDashboardPage() {
   const loadPendingKYC = async () => {
     try {
       setLoading(true);
-      const res = await apiCall<any[]>('/admin/kyc/pending', 'GET');
-      if (res.success && Array.isArray(res.data)) {
-        setKycList(res.data);
+      const res = await apiCall<any>('/admin/kyc/pending', 'GET');
+      let list = extractArray(res);
+      if (list.length === 0) {
+        const allKyc = await apiCall<any>('/admin/kyc', 'GET');
+        const kycArray = extractArray(allKyc);
+        const pending = kycArray.filter((k: any) => k.status === 'pending' || !k.verified);
+        if (pending.length > 0) list = pending;
       }
+      setKycList(list);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load pending KYC:', err);
+      setKycList([]);
     } finally {
       setLoading(false);
     }
@@ -139,12 +176,27 @@ export default function AdminDashboardPage() {
       const url = propertyStatusFilter
         ? `/admin/properties?status=${propertyStatusFilter}`
         : '/admin/properties';
-      const res = await apiCall<any[]>(url, 'GET');
-      if (res.success && Array.isArray(res.data)) {
-        setAllProperties(res.data);
+      let res = await apiCall<any>(url, 'GET');
+      let list = extractArray(res);
+
+      // If empty or admin route didn't return data, fallback to public properties API
+      if (list.length === 0) {
+        const publicRes = await apiCall<any>('/properties/all?limit=100', 'GET');
+        list = extractArray(publicRes);
+        if (list.length === 0) {
+          const baseRes = await apiCall<any>('/properties', 'GET');
+          list = extractArray(baseRes);
+        }
       }
+
+      if (propertyStatusFilter && list.length > 0) {
+        list = list.filter((p: any) => !p.status || p.status.toLowerCase() === propertyStatusFilter.toLowerCase());
+      }
+
+      setAllProperties(list);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load all properties:', err);
+      setAllProperties([]);
     } finally {
       setLoading(false);
     }
@@ -154,12 +206,19 @@ export default function AdminDashboardPage() {
     try {
       setLoading(true);
       const url = userRoleFilter ? `/admin/users?role=${userRoleFilter}` : '/admin/users';
-      const res = await apiCall<any[]>(url, 'GET');
-      if (res.success && Array.isArray(res.data)) {
-        setAllUsers(res.data);
+      let res = await apiCall<any>(url, 'GET');
+      let list = extractArray(res);
+      if (list.length === 0 && !userRoleFilter) {
+        const fallbackUsers = await apiCall<any>('/users', 'GET');
+        list = extractArray(fallbackUsers);
       }
+      if (userRoleFilter && list.length > 0) {
+        list = list.filter((u: any) => u.role?.toLowerCase() === userRoleFilter.toLowerCase());
+      }
+      setAllUsers(list);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load all users:', err);
+      setAllUsers([]);
     } finally {
       setLoading(false);
     }
@@ -168,12 +227,16 @@ export default function AdminDashboardPage() {
   const loadActivityLogs = async () => {
     try {
       setLoading(true);
-      const res = await apiCall<any[]>(`/admin/activity-logs?days=${logDaysFilter}`, 'GET');
-      if (res.success && Array.isArray(res.data)) {
-        setActivityLogs(res.data);
+      let res = await apiCall<any>(`/admin/activity-logs?days=${logDaysFilter}`, 'GET');
+      let list = extractArray(res);
+      if (list.length === 0) {
+        const fallbackRes = await apiCall<any>('/admin/logs', 'GET');
+        list = extractArray(fallbackRes);
       }
+      setActivityLogs(list);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load activity logs:', err);
+      setActivityLogs([]);
     } finally {
       setLoading(false);
     }
@@ -506,12 +569,20 @@ export default function AdminDashboardPage() {
                   <h3 className="card-title">Recent Activity</h3>
                   <div className="activity-list">
                     {recentActivity.length === 0 ? (
-                      <p style={{ color: 'var(--muted-foreground)', padding: '1rem' }}>No recent activity</p>
+                      <p style={{ color: 'var(--admin-muted)', padding: '1rem', margin: 0 }}>No recent activity</p>
                     ) : (
                       recentActivity.map((act, idx) => (
-                        <div key={idx} style={{ padding: '0.75rem', borderBottom: '1px solid var(--border)' }}>
-                          <p style={{ fontWeight: 500, fontSize: '0.9rem' }}>{act.action || act.description}</p>
-                          <small style={{ color: 'var(--muted-foreground)' }}>{formatDate(act.created_at)}</small>
+                        <div key={idx} className="activity-item">
+                          <div className="activity-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                              <circle cx="12" cy="12" r="10" />
+                              <polyline points="12 6 12 12 16 14" />
+                            </svg>
+                          </div>
+                          <div className="activity-details">
+                            <p className="activity-title">{act.action || act.description}</p>
+                            <p className="activity-time">{formatDate(act.created_at)}</p>
+                          </div>
                         </div>
                       ))
                     )}
@@ -534,34 +605,28 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
 
-              {pendingProperties.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--card)', borderRadius: '12px' }}>
+              {loading ? (
+                <div className="admin-empty-state">
+                  <div className="spinner" style={{ margin: '0 auto 1rem', width: '32px', height: '32px', border: '3px solid rgba(59, 130, 246, 0.2)', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                  <p>Loading pending properties...</p>
+                </div>
+              ) : pendingProperties.length === 0 ? (
+                <div className="admin-empty-state">
                   <h3>No pending properties</h3>
-                  <p style={{ color: 'var(--muted-foreground)' }}>All submitted properties have been reviewed.</p>
+                  <p>All submitted properties have been reviewed.</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {pendingProperties.map((prop) => (
-                    <div
-                      key={prop.id}
-                      style={{
-                        padding: '1.25rem',
-                        background: 'var(--card)',
-                        borderRadius: '12px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        border: '1px solid var(--border)',
-                      }}
-                    >
+                    <div key={prop.id} className="admin-card-item">
                       <div>
-                        <h4 style={{ margin: 0, fontSize: '1.1rem' }}>{prop.title}</h4>
-                        <p style={{ margin: '0.25rem 0', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>
-                          📍 {prop.location} • {formatCurrency(prop.price)} • Agent: {prop.agent_name || prop.user_id}
+                        <h4 className="admin-card-title">{prop.title}</h4>
+                        <p className="admin-card-subtitle">
+                          📍 {prop.location} • <strong>{formatCurrency(prop.price)}</strong> • Agent: {prop.agent_name || prop.user_id}
                         </p>
-                        <small style={{ color: 'var(--muted-foreground)' }}>Submitted: {formatDate(prop.created_at)}</small>
+                        <span className="admin-card-meta">Submitted: {formatDate(prop.created_at)}</span>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                         <Link href={`/property?id=${prop.id}`} className="btn-secondary btn-sm" target="_blank">
                           View
                         </Link>
@@ -600,36 +665,30 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
 
-              {pendingAgents.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--card)', borderRadius: '12px' }}>
+              {loading ? (
+                <div className="admin-empty-state">
+                  <div className="spinner" style={{ margin: '0 auto 1rem', width: '32px', height: '32px', border: '3px solid rgba(59, 130, 246, 0.2)', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                  <p>Loading pending agents...</p>
+                </div>
+              ) : pendingAgents.length === 0 ? (
+                <div className="admin-empty-state">
                   <h3>No pending agents</h3>
-                  <p style={{ color: 'var(--muted-foreground)' }}>All agent applications have been reviewed.</p>
+                  <p>All agent applications have been reviewed.</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {pendingAgents.map((ag) => (
-                    <div
-                      key={ag.id}
-                      style={{
-                        padding: '1.25rem',
-                        background: 'var(--card)',
-                        borderRadius: '12px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        border: '1px solid var(--border)',
-                      }}
-                    >
+                    <div key={ag.id} className="admin-card-item">
                       <div>
-                        <h4 style={{ margin: 0, fontSize: '1.1rem' }}>
-                          {ag.first_name} {ag.last_name} ({ag.username})
+                        <h4 className="admin-card-title">
+                          {ag.first_name} {ag.last_name} (@{ag.username})
                         </h4>
-                        <p style={{ margin: '0.25rem 0', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>
+                        <p className="admin-card-subtitle">
                           ✉️ {ag.email} • 📞 {ag.phone_number || 'N/A'}
                         </p>
-                        <small style={{ color: 'var(--muted-foreground)' }}>Registered: {formatDate(ag.created_at)}</small>
+                        <span className="admin-card-meta">Registered: {formatDate(ag.created_at)}</span>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                         <button
                           onClick={() => approveAgent(ag.id)}
                           className="btn-primary btn-sm"
@@ -665,34 +724,28 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
 
-              {kycList.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--card)', borderRadius: '12px' }}>
+              {loading ? (
+                <div className="admin-empty-state">
+                  <div className="spinner" style={{ margin: '0 auto 1rem', width: '32px', height: '32px', border: '3px solid rgba(59, 130, 246, 0.2)', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                  <p>Loading KYC submissions...</p>
+                </div>
+              ) : kycList.length === 0 ? (
+                <div className="admin-empty-state">
                   <h3>No pending KYC submissions</h3>
-                  <p style={{ color: 'var(--muted-foreground)' }}>All submissions have been verified.</p>
+                  <p>All submissions have been verified.</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {kycList.map((k) => (
-                    <div
-                      key={k.id}
-                      style={{
-                        padding: '1.25rem',
-                        background: 'var(--card)',
-                        borderRadius: '12px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        border: '1px solid var(--border)',
-                      }}
-                    >
+                    <div key={k.id} className="admin-card-item">
                       <div>
-                        <h4 style={{ margin: 0, fontSize: '1.1rem' }}>{k.agent_name || k.full_name}</h4>
-                        <p style={{ margin: '0.25rem 0', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>
-                          ID Type: {k.id_type || 'Government ID'} • ID Number: {k.id_number}
+                        <h4 className="admin-card-title">{k.agent_name || k.full_name}</h4>
+                        <p className="admin-card-subtitle">
+                          ID Type: <strong>{k.id_type || 'Government ID'}</strong> • ID Number: <strong>{k.id_number}</strong>
                         </p>
-                        <small style={{ color: 'var(--muted-foreground)' }}>Submitted: {formatDate(k.created_at)}</small>
+                        <span className="admin-card-meta">Submitted: {formatDate(k.created_at)}</span>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                         <button
                           onClick={() => setKycModal({ open: true, item: k, rejectionOpen: false, rejectionReason: '' })}
                           className="btn-secondary btn-sm"
@@ -730,7 +783,7 @@ export default function AdminDashboardPage() {
                       loadAllProperties();
                     }}
                     className="form-select"
-                    style={{ padding: '0.5rem', borderRadius: '8px' }}
+                    style={{ padding: '0.5rem 0.75rem', borderRadius: '8px' }}
                   >
                     <option value="">All Statuses</option>
                     <option value="approved">Approved</option>
@@ -743,32 +796,36 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {allProperties.map((p) => (
-                  <div
-                    key={p.id}
-                    style={{
-                      padding: '1rem',
-                      background: 'var(--card)',
-                      borderRadius: '10px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      border: '1px solid var(--border)',
-                    }}
-                  >
-                    <div>
-                      <h4 style={{ margin: 0 }}>{p.title}</h4>
-                      <p style={{ margin: '0.25rem 0', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>
-                        📍 {p.location} • {formatCurrency(p.price)} • Status: <strong>{p.status || 'active'}</strong>
-                      </p>
+              {loading ? (
+                <div className="admin-empty-state">
+                  <div className="spinner" style={{ margin: '0 auto 1rem', width: '32px', height: '32px', border: '3px solid rgba(59, 130, 246, 0.2)', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                  <p>Loading properties...</p>
+                </div>
+              ) : allProperties.length === 0 ? (
+                <div className="admin-empty-state">
+                  <h3>No properties found</h3>
+                  <p>There are currently no property listings matching your filter.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {allProperties.map((p) => (
+                    <div key={p.id} className="admin-card-item">
+                      <div>
+                        <h4 className="admin-card-title">{p.title}</h4>
+                        <p className="admin-card-subtitle">
+                          📍 {p.location} • <strong>{formatCurrency(p.price)}</strong> • Status:{' '}
+                          <span className={`badge badge-${p.status === 'approved' ? 'approved' : p.status === 'rejected' ? 'rejected' : 'pending'}`}>
+                            {p.status || 'active'}
+                          </span>
+                        </p>
+                      </div>
+                      <Link href={`/property?id=${p.id}`} className="btn-secondary btn-sm" target="_blank">
+                        View
+                      </Link>
                     </div>
-                    <Link href={`/property?id=${p.id}`} className="btn-secondary btn-sm" target="_blank">
-                      View
-                    </Link>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
@@ -788,7 +845,7 @@ export default function AdminDashboardPage() {
                       loadAllUsers();
                     }}
                     className="form-select"
-                    style={{ padding: '0.5rem', borderRadius: '8px' }}
+                    style={{ padding: '0.5rem 0.75rem', borderRadius: '8px' }}
                   >
                     <option value="">All Roles</option>
                     <option value="buyer">Buyers</option>
@@ -801,31 +858,40 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {allUsers.map((u) => (
-                  <div
-                    key={u.id}
-                    style={{
-                      padding: '1rem',
-                      background: 'var(--card)',
-                      borderRadius: '10px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      border: '1px solid var(--border)',
-                    }}
-                  >
-                    <div>
-                      <h4 style={{ margin: 0 }}>
-                        {u.first_name} {u.last_name} (@{u.username})
-                      </h4>
-                      <p style={{ margin: '0.25rem 0', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>
-                        ✉️ {u.email} • Role: <strong>{u.role}</strong> • Status: {u.is_verified ? 'Verified' : 'Unverified'}
-                      </p>
+              {loading ? (
+                <div className="admin-empty-state">
+                  <div className="spinner" style={{ margin: '0 auto 1rem', width: '32px', height: '32px', border: '3px solid rgba(59, 130, 246, 0.2)', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                  <p>Loading users...</p>
+                </div>
+              ) : allUsers.length === 0 ? (
+                <div className="admin-empty-state">
+                  <h3>No users found</h3>
+                  <p>There are currently no registered users matching your filter.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {allUsers.map((u) => (
+                    <div key={u.id} className="admin-card-item">
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+                          <h4 className="admin-card-title">
+                            {u.first_name || ''} {u.last_name || ''} (@{u.username})
+                          </h4>
+                          <span className={`badge badge-${u.role === 'admin' ? 'admin' : u.role === 'agent' ? 'agent' : 'buyer'}`}>
+                            {u.role}
+                          </span>
+                          <span className={`badge badge-${u.is_verified ? 'approved' : 'secondary'}`}>
+                            {u.is_verified ? 'Verified' : 'Unverified'}
+                          </span>
+                        </div>
+                        <p className="admin-card-subtitle">
+                          ✉️ {u.email}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
@@ -845,7 +911,7 @@ export default function AdminDashboardPage() {
                       loadActivityLogs();
                     }}
                     className="form-select"
-                    style={{ padding: '0.5rem', borderRadius: '8px' }}
+                    style={{ padding: '0.5rem 0.75rem', borderRadius: '8px' }}
                   >
                     <option value="7">Last 7 days</option>
                     <option value="14">Last 14 days</option>
@@ -858,24 +924,32 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {activityLogs.map((log, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: '0.875rem 1.25rem',
-                      background: 'var(--card)',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border)',
-                    }}
-                  >
-                    <p style={{ margin: 0, fontWeight: 500 }}>{log.action || log.description}</p>
-                    <small style={{ color: 'var(--muted-foreground)' }}>
-                      User: {log.user_id || 'System'} • {formatDate(log.created_at)}
-                    </small>
-                  </div>
-                ))}
-              </div>
+              {loading ? (
+                <div className="admin-empty-state">
+                  <div className="spinner" style={{ margin: '0 auto 1rem', width: '32px', height: '32px', border: '3px solid rgba(59, 130, 246, 0.2)', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                  <p>Loading activity logs...</p>
+                </div>
+              ) : activityLogs.length === 0 ? (
+                <div className="admin-empty-state">
+                  <h3>No activity logs recorded</h3>
+                  <p>No activity logs found for the selected time range.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {activityLogs.map((log, idx) => (
+                    <div key={idx} className="admin-card-item" style={{ padding: '1rem 1.25rem' }}>
+                      <div>
+                        <p style={{ margin: 0, fontWeight: 600, color: 'var(--admin-text)' }}>
+                          {log.action || log.description}
+                        </p>
+                        <span className="admin-card-meta">
+                          User: <strong>{log.user_id || 'System'}</strong> • {formatDate(log.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           )}
         </div>

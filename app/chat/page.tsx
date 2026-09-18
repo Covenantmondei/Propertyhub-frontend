@@ -62,7 +62,7 @@ function ChatContent() {
   async function loadConversations() {
     setLoadingConvs(true);
     try {
-      const data = await apiCall('/messages/conversations');
+      const data = await apiCall('/chat/conversations');
       let list: Conversation[] = [];
       if (Array.isArray(data)) {
         list = data;
@@ -72,6 +72,39 @@ function ChatContent() {
         list = data.conversations;
       }
       setConversations(list);
+
+      // Handle query params like ?property_id=8 or ?agent=123
+      const propId = searchParams.get('property_id') ? Number(searchParams.get('property_id')) : null;
+      const agentId = (searchParams.get('agent') || searchParams.get('agent_id')) ? Number(searchParams.get('agent') || searchParams.get('agent_id')) : null;
+
+      if (propId || agentId) {
+        const existing = list.find((c: any) => 
+          (propId && (c?.property?.id === propId || c?.property_id === propId)) ||
+          (agentId && (c?.other_user?.id === agentId || c?.agent_id === agentId || c?.recipient_id === agentId))
+        );
+
+        if (existing) {
+          openConversation(existing);
+        } else {
+          // Create conversation if it does not exist yet
+          try {
+            const payload: any = {};
+            if (propId) payload.property_id = propId;
+            if (agentId) payload.recipient_id = agentId;
+            const newConv = await apiCall('/chat/conversations', {
+              method: 'POST',
+              body: JSON.stringify(payload),
+            });
+            if (newConv && (newConv.id || typeof newConv === 'object')) {
+              const created = newConv.id ? newConv : (newConv.data || newConv);
+              setConversations((prev) => [created, ...prev.filter((c) => c.id !== created.id)]);
+              openConversation(created);
+            }
+          } catch (createErr) {
+            console.error('Failed to create new conversation:', createErr);
+          }
+        }
+      }
     } catch (err) {
       console.error('Failed to load conversations:', err);
       setConversations([]);
@@ -80,19 +113,37 @@ function ChatContent() {
     }
   }
 
+  async function fetchMessagesForConv(convId: number): Promise<Message[]> {
+    try {
+      const data = await apiCall(`/chat/conversations/${convId}`);
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.messages)) return data.messages;
+      if (Array.isArray(data?.data?.messages)) return data.data.messages;
+      if (Array.isArray(data?.data)) return data.data;
+
+      // Fallback try /chat/conversations/{convId}/messages
+      const dataFallback = await apiCall(`/chat/conversations/${convId}/messages`);
+      if (Array.isArray(dataFallback)) return dataFallback;
+      if (Array.isArray(dataFallback?.messages)) return dataFallback.messages;
+      if (Array.isArray(dataFallback?.data)) return dataFallback.data;
+      return [];
+    } catch (err) {
+      // If first call threw, try fallback
+      try {
+        const dataFallback = await apiCall(`/chat/conversations/${convId}/messages`);
+        if (Array.isArray(dataFallback)) return dataFallback;
+        if (Array.isArray(dataFallback?.messages)) return dataFallback.messages;
+        if (Array.isArray(dataFallback?.data)) return dataFallback.data;
+      } catch { }
+      return [];
+    }
+  }
+
   async function openConversation(conv: Conversation) {
     setActiveConv(conv);
     setLoadingMsgs(true);
     try {
-      const data = await apiCall(`/chat/conversations/${conv.id}/messages`);
-      let list: Message[] = [];
-      if (Array.isArray(data)) {
-        list = data;
-      } else if (data?.data && Array.isArray(data.data)) {
-        list = data.data;
-      } else if (data?.messages && Array.isArray(data.messages)) {
-        list = data.messages;
-      }
+      const list = await fetchMessagesForConv(conv.id);
       setMessages(list);
     } catch {
       setMessages([]);
@@ -104,15 +155,7 @@ function ChatContent() {
     if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = setInterval(async () => {
       try {
-        const data = await apiCall(`/chat/conversations/${conv.id}/messages`);
-        let list: Message[] = [];
-        if (Array.isArray(data)) {
-          list = data;
-        } else if (data?.data && Array.isArray(data.data)) {
-          list = data.data;
-        } else if (data?.messages && Array.isArray(data.messages)) {
-          list = data.messages;
-        }
+        const list = await fetchMessagesForConv(conv.id);
         setMessages(list);
       } catch { }
     }, 5000);
@@ -125,17 +168,9 @@ function ChatContent() {
     try {
       await apiCall(`/chat/conversations/${activeConv.id}/messages`, {
         method: 'POST',
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, message: content }),
       });
-      const data = await apiCall(`/chat/conversations/${activeConv.id}/messages`);
-      let list: Message[] = [];
-      if (Array.isArray(data)) {
-        list = data;
-      } else if (data?.data && Array.isArray(data.data)) {
-        list = data.data;
-      } else if (data?.messages && Array.isArray(data.messages)) {
-        list = data.messages;
-      }
+      const list = await fetchMessagesForConv(activeConv.id);
       setMessages(list);
       loadConversations();
     } catch (err: any) {

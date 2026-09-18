@@ -255,10 +255,17 @@ function PropertyDetailContent() {
       if (!date) return;
       const time = prompt('Enter preferred time (HH:MM):');
       if (!time) return;
-      await apiCall('/visits/', {
-        method: 'POST',
-        body: JSON.stringify({ property_id: Number(propertyId), preferred_date: date, preferred_time: time }),
-      });
+      try {
+        await apiCall('/visit/request', {
+          method: 'POST',
+          body: JSON.stringify({ property_id: Number(propertyId), preferred_date: date, preferred_time: time }),
+        });
+      } catch (e) {
+        await apiCall('/visits/', {
+          method: 'POST',
+          body: JSON.stringify({ property_id: Number(propertyId), preferred_date: date, preferred_time: time }),
+        });
+      }
       alert('Visit scheduled successfully!');
       router.push('/visits');
     } catch (err: any) {
@@ -267,7 +274,12 @@ function PropertyDetailContent() {
   }
 
   function viewAgentProfile() {
-    if (property?.agent?.id) router.push(`/agent-profile?id=${property.agent.id}`);
+    const agentId = property?.agent?.id || (property as any)?.agent_id || (property as any)?.owner_id;
+    if (agentId) {
+      router.push(`/agent-profile?id=${agentId}`);
+    } else {
+      router.push('/agent-profile');
+    }
   }
 
   if (loading) {

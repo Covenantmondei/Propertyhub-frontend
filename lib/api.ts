@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://propertyhub-mpka.onrender.com';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://propertyhub-backend.fastapicloud.dev';
 
 // Token refresh state
 let isRefreshing = false;
